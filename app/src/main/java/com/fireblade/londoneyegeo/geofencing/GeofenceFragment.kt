@@ -13,8 +13,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import com.fireblade.londoneyegeo.R
+import com.fireblade.londoneyegeo.geofencing.model.GeofenceLandmarks
 import com.fireblade.londoneyegeo.geofencing.services.GeofenceBroadcastReceiver
-import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingClient
 import com.google.android.gms.location.GeofencingRequest
 import com.google.android.gms.location.LocationServices
@@ -27,23 +27,6 @@ class GeofenceFragment : Fragment(), OnCompleteListener<Void> {
   private val REQUEST_PERMISSIONS = 2
 
   lateinit var geofencingClient: GeofencingClient
-
-  // The list of landmarks with their latitude, longitude, and circular radius of interest
-  val geofenceList = arrayListOf<Geofence>(Geofence.Builder().setRequestId("London Eye").setCircularRegion(51.503399, -0.119519, 100.0f)
-    .setExpirationDuration(Geofence.NEVER_EXPIRE) // unset expiration interval for the location
-    .setLoiteringDelay(500) // set a delay in ms between posting enter and dwell transitions
-    .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT or Geofence.GEOFENCE_TRANSITION_DWELL)
-    .build(),
-  Geofence.Builder().setRequestId("Olympic Park").setCircularRegion(51.54615, -0.01269, 1600.0f)
-    .setExpirationDuration(Geofence.NEVER_EXPIRE)
-    .setLoiteringDelay(500)
-    .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT or Geofence.GEOFENCE_TRANSITION_DWELL)
-    .build(),
-  Geofence.Builder().setRequestId("Westfield Stratford").setCircularRegion(51.545935, -0.009248, 1600.0f)
-    .setExpirationDuration(Geofence.NEVER_EXPIRE)
-    .setLoiteringDelay(500)
-    .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT or Geofence.GEOFENCE_TRANSITION_DWELL)
-    .build())
 
   override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
     // Create the View from the fragment_geofence layout resource file
@@ -73,7 +56,7 @@ class GeofenceFragment : Fragment(), OnCompleteListener<Void> {
     return GeofencingRequest.Builder().apply {
       // Trigger GEOFENCE_TRANSITION_ENTER transition event when the user is within the location at the start of the application
       setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
-      addGeofences(geofenceList)
+      addGeofences(GeofenceLandmarks.landMarks)
     }.build()
   }
 
@@ -87,6 +70,7 @@ class GeofenceFragment : Fragment(), OnCompleteListener<Void> {
     if (requestCode == REQUEST_PERMISSIONS && grantResults.first() == PackageManager.PERMISSION_GRANTED) {
 
       // Add the geofences if the permissions are granted
+      // Even though the IDE warns for a possible error, it's pointless to check for the permission that has just been granted
       geofencingClient.addGeofences(getGeofencingRequest(), geofencePendingIntent).addOnCompleteListener(this)
     }
 
@@ -95,7 +79,7 @@ class GeofenceFragment : Fragment(), OnCompleteListener<Void> {
 
   override fun onComplete(task: Task<Void>) {
     // Update the status based on the result of the addition of the geofences to the geofence client
-    if (task.isSuccessful) {
+    if (task.isSuccessful && ContextCompat.checkSelfPermission(context!!, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
       status_text.text = getString(R.string.geofence_running)
       val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
       locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
