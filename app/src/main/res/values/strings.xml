@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">LondonEyeGeo</string>
+    <string name="app_name">Landmark Geofence Monitor</string>
+    <string name="geofence_running">Geofence is running</string>
+    <string name="geofence_stopped">Geofence is stopped</string>
 </resources>
