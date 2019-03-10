@@ -10,16 +10,21 @@ import android.support.v4.app.JobIntentService
 import android.support.v4.app.NotificationCompat
 import com.fireblade.londoneyegeo.GeofenceActivity
 import com.fireblade.londoneyegeo.R
+import com.fireblade.londoneyegeo.geofencing.services.notifications.INotificationService
+import com.fireblade.londoneyegeo.geofencing.services.notifications.NotificationService
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingEvent
 
 class GeofenceTransitionsIntentService : JobIntentService() {
 
+  private val notificationService: INotificationService by lazy {
+    NotificationService(getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager,
+      resources, applicationContext, baseContext, getString(R.string.app_name))
+  }
+
   companion object {
 
     private const val JOB_ID = 1000
-
-    private val CHANNELID = "ID_01"
 
     // Helper function for
     fun enqueueWork(context: Context, intent: Intent) {
@@ -32,7 +37,7 @@ class GeofenceTransitionsIntentService : JobIntentService() {
     val geofencingEvent = GeofencingEvent.fromIntent(intent)
 
     if (geofencingEvent.hasError()) {
-      sendNotification("Notification Error")
+      notificationService.sendNotification("Notification Error")
       return
     }
 
@@ -52,46 +57,8 @@ class GeofenceTransitionsIntentService : JobIntentService() {
       // Iterate over the triggered geofences and push a notification for each
       geofencingEvent.triggeringGeofences.map {
         val geofenceName = it.requestId
-        sendNotification("$geofenceName $geofenceTransitionDetails")
+        notificationService.sendNotification("$geofenceName $geofenceTransitionDetails")
       }
     }
-  }
-
-  private fun sendNotification(notificationDetails: String) {
-
-    val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-
-      val appName = getString(R.string.app_name)
-
-      // Must set channel on notifications since Android 8.0 (Orea)
-      val channel = NotificationChannel(CHANNELID, appName, NotificationManager.IMPORTANCE_DEFAULT)
-
-      notificationManager.createNotificationChannel(channel)
-    }
-
-    val notificationIntent = Intent(applicationContext, GeofenceActivity::class.java)
-
-    val stackBuilder = TaskStackBuilder.create(baseContext)
-
-    stackBuilder.addParentStack(GeofenceActivity::class.java)
-
-    stackBuilder.addNextIntent(notificationIntent)
-
-    val notificationPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT)
-
-    val builder = NotificationCompat.Builder(baseContext, CHANNELID)
-
-    // Set the UI for the notification
-    builder.setSmallIcon(R.mipmap.ic_launcher).setLargeIcon(BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher))
-      .setColor(Color.RED)
-      .setContentTitle("Notification:")
-      .setContentText(notificationDetails)
-      .setContentIntent(notificationPendingIntent)
-
-    builder.setAutoCancel(true)
-
-    notificationManager.notify(0, builder.build())
   }
 }
